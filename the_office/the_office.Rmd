@@ -1,0 +1,58 @@
+---
+title: "The Office Analysis"
+author: "Alex Brown"
+date: "June 17, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This is an analysis of the the office transcripts. The data comes from the [tidytuesday github](https://github.com/rfordatascience/tidytuesday/blob/master/data/2020/2020-03-17/readme.md), which points to the `schrute` R package to load data.
+
+## The Data
+
+Below I am loading necissary packages and reading in the data.
+
+```{r read in data, message=FALSE}
+
+# library bank ----
+
+library(data.table)
+library(schrute)
+library(tidyverse)
+library(kableExtra)
+
+# read in data ----
+
+office_transcripts <- theoffice
+
+```
+
+Here is a quick `glimpse` of the data loaded. You can see the `office_transcripts` dataframe represent the transcripts and general information of each episode. In addition, it shows the `imbd` rating and votes of that episode.
+
+```{r about the data}
+# about the data ----
+
+glimpse(office_transcripts)
+
+```
+
+When working with a new dataset, it is always a good idea to expose any `null` or `na` values.
+
+```{r find na values}
+
+data.frame(na_values = sapply(office_transcripts, function(x) sum(is.na(office_transcripts)))) %>% rownames_to_column(var = "column_name") %>% kable() %>% kable_styling()
+
+```
+
+I guess that's why they call it "tidy tuesday", there is no missing values!
+
+## Exploring The Data
+
+First, lets get some basic information about the seasons:
+
+### How ma

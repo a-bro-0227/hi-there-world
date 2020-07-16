@@ -1,0 +1,311 @@
+---
+title: "Spotify Song Attributes"
+author: "Alex Brown"
+date: "June 22, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This analysis is of a dataset that comes from [kaggle](https://www.kaggle.com/geomack/spotifyclassification) and represents a list of songs and their attributes that a user liked or didn't like. Information about the Spotify API that the dataset was pulled from and the data variables themselves can be found here: [Spotify API](https://developer.spotify.com/web-api/get-audio-features/).
+
+## The Data
+
+### Read in
+
+First, of course, we are going to import libraries and read in the data. Below is a `glimpse` of the data which provides some basic info about the data (number of columns, number of rows, column names, column structure, etc.). In addition, I have set up some options that will be carried throughout the report.
+
+```{r read in, message=FALSE}
+
+# library bank ----
+
+library(data.table)
+library(tidyverse)
+library(ggcorrplot)
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(randomForest)
+library(ROCR)
+
+# options ----
+
+theme_set(theme_classic()) # set plot theme
+options(scipen = 999) # reduce scientific notation
+target_colors <- c("#404080", "#69b3a2")
+
+# read in ----
+
+spotify_songs <- fread("datasets_1833_3172_data.csv", drop = "V1")
+
+glimpse(spotify_songs) # glimpse of data
+
+```
+
+### Transform
+
+At this point we can do some basic manipulation of the data. There isn't much that needs to be done with this data, but I will change a few variables to factors based on the [Spotify API](https://developer.spotify.com/web-api/get-audio-features/) documentation and add a column for duration in minutes for more intuitive visualizations. In addition, I discovered 10 unexplained duplicate observation that I will keep only one instance of.
+
+```{r transform}
+
+# transform ----
+
+# turn target, mode, and key into factors for exploration
+# create a minute instead of ms column
+spotify_songs <- spotify_songs %>% mutate(mode = factor(mode, levels = c(0, 1), labels = c("minor", "major")),
+                                          target = factor(target, levels = c(0, 1), labels = c("dislike", "like")),
+                                          key = factor(key,
+                                                       levels = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11),
+                                                       labels = c("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")),
+                                          duration_min = duration_ms / 60000) %>% 
+  distinct()
+
+```
+
+## Explore
+
+Now that we have read in the data and done some pre-work, we can do some exploring. For this dataset, I think it will be best to start by looking at categorical variables and get a sense of our target. Then we can incorporate target information in to our exploration of 'attributes' of the song and other numerical aspects of the song. From there, It might be fun to extract what we can about artists and songs.
+
+### Categorical Variables
+
+Let's start with just counting how many variables this user liked or disliked.
+
+```{r target count}
+# get a look at the target
+spotify_songs %>% 
+  count(target, name = "count") %>% 
+  ggplot(aes(x = target, y = count, fill = target)) +
+  geom_bar(position = 'dodge', stat ="identity") +
+  scale_fill_manual(values = target_colors) +
+  geom_text(aes(label = count), position=position_dodge(width = 0.9), vjust = -0.25)
+```
+
+We can see that this dataset has a pretty even spread for liked and disliked songs and we can confirm that there is no class inbalance.
+
+Now, let's break that down to see how they feel about major vs. minor keys in a stacked proportion bar chart. This chart represents the proportion of songs in major or minor that this user liked or disliked.
+
+```{r major v minor}
+# create stacked bar plot of target and mode
+spotify_songs %>% count(target, mode, name = "count") %>% 
+  ggplot(aes(x = mode, y = count, fill = target)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(values = target_colors)
+```
+
+Again, there does not appear to be a significant difference between this user liking or disliking a song based on major and minor keys. If anything, there appears to be a slightly better chance the user will like a minor song as opposed to a major song.
+
+Lastly, we can look at if this user likes any particular key. We will do this with two graphs. On the left, we will show a simple count of likes and dislikes for each of the keys and on the right we will show the proportion of likes vs. dislikes.
+
+```{r key, fig.show="hold", out.width="50%"}
+# key bar
+spotify_songs %>% 
+  ggplot(aes(x = key, fill = target)) +
+  geom_bar(position = 'dodge') +
+  scale_fill_manual(values = target_colors)
+
+# key stacked
+spotify_songs %>% 
+  ggplot(aes(x = key, fill = target)) +
+  geom_bar(position = 'fill') +
+  scale_fill_manual(values = target_colors)
+```
+
+We can see from these graphs that this user tends to like songs they listen to in the key of D and A but tends to not like songs in the key of C# or D#.
+
+### Attributes
+
+We will start out by looking at attributes of a song with a histogram for each of the attributes. *Please note, the y-axis scales are variable.*
+
+```{r hisogram all}
+# look at histogram for all columns that represent 'attributes'
+# facet out by like/not
+spotify_songs %>% 
+  select(target, acousticness, danceability, energy, instrumentalness, liveness, speechiness, valence) %>% 
+  gather(key = "attribute", value = "value", -target) %>% 
+  ggplot(aes(x = value, fill = target)) +
+  geom_histogram(bins = 30, position = "identity", alpha = 0.6) +
+  scale_fill_manual(values = target_colors) +
+  facet_wrap( ~ attribute, scales = "free_y")
+```
+
+To make this more interesting and visually appeasing, I have filtered down to the attributes that I think are somewhat interesting. We can see from the graphs below that this user tends to like dance-able songs, with higher energy (but not too high and definitely not low energy), and more valence.
+
+```{r hisogram interesting}
+# look at histogram for all columns that represent 'attributes'
+# facet out by like/not
+spotify_songs %>% 
+  select(target, danceability, energy, valence) %>% 
+  gather(key = "attribute", value = "value", -target) %>% 
+  ggplot(aes(x = value, fill = target)) +
+  geom_histogram(bins = 30, position = "identity", alpha = 0.6) +
+  scale_fill_manual(values = target_colors) +
+  facet_grid(cols = vars(attribute))
+```
+
+Another great way to display information about these attributes is through a violin plot. A violin plot shows the mirrored density of observations, along with summary statistics. You can see how the shapes of violin plot mimic the histograms, and with an embedded box plot, we can also see the interquartile range.
+
+```{r violin}
+# violin polt of different 'attributes'
+spotify_songs %>% 
+  select(target, danceability, energy, valence) %>% 
+  gather(key = "attribute", value = "value", -target) %>% 
+  ggplot(aes(target, value, color = target)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1) +
+  scale_color_manual(values = target_colors) +
+  facet_grid(cols = vars(attribute))
+```
+
+#### Attribute Correlations
+
+Below we will look at the correlation between the different attributes.
+
+```{r correlation}
+
+# correlations ----
+
+# plot the correlation of the variables
+spotify_songs %>% 
+  select(-c(duration_ms, duration_min, key, loudness, mode, tempo, time_signature, song_title, artist, target)) %>% 
+  cor() %>% round(2) %>% 
+  ggcorrplot(hc.order = TRUE, type = "lower", lab = TRUE, colors = c("#404080", "white", "#69b3a2"))
+```
+
+We can see there is somewhat strong correlation between dance-ability and valence and between acousticness and energy. So we will plot those out to get a better look.
+
+```{r high corr}
+# dance v valence
+spotify_songs %>% 
+  ggplot(aes(x = danceability, y = valence, color = target)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "gam") +
+  scale_color_manual(values = target_colors)
+
+# acoustic v energy
+spotify_songs %>% 
+  ggplot(aes(x = acousticness, y = energy, color = target)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "gam") +
+  scale_color_manual(values = target_colors)
+```
+
+### Numeric Variables
+
+Now we can look at the numeric variables.
+
+#### Tempo
+
+To look at tempo, I have created a histogram on the left which identifies this users "sweet spot"" for tempo is about 120 and they tend not to like songs with a tempo under 100. This histogram also identifies some potential outliers with very high and very low tempos. I won't address these for now and assume they are accurate, but I think it is something to check out in the future. On the right, I have created a scatter plot of the "interesting" attributes with tempo on the x-axis.
+
+```{r tempo, fig.show="hold", out.width="50%"}
+# looking at tempo 1
+spotify_songs %>% 
+  ggplot(aes(x = tempo, fill = target)) +
+  geom_histogram(bins = 30, position = "identity", alpha = 0.6) +
+  scale_fill_manual(values = target_colors)
+
+# looking at tempo 2
+spotify_songs %>% 
+  select(target, danceability, energy, valence, tempo) %>% 
+  gather(key = "attribute", value = "value", -c(tempo, target)) %>% 
+  ggplot(aes(x = tempo, y = value, color = target)) +
+  geom_point(alpha = 0.6) +
+  facet_grid(rows = vars(attribute)) +
+  scale_color_manual(values = target_colors)
+```
+
+#### Loudness
+
+The below shows a histogram and box plot of the *loudness* attribute. Both show that the user tends to not like extremely loud songs.
+
+```{r loudness, fig.show="hold", out.width="50%"}
+# loudness
+
+# histo
+spotify_songs %>%
+  ggplot(aes(x = loudness, fill = target)) +
+  geom_histogram(bins = 30, position = "identity", alpha = 0.6) +
+  scale_fill_manual(values = target_colors)
+
+# violin
+spotify_songs %>%
+  ggplot(aes(x = target, y = loudness, color = target)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1) +
+  scale_color_manual(values = target_colors)
+```
+
+#### Duration
+
+The below shows the duration of songs in a histogram and a violin plot. We can see the cluster of duration of songs tends to be around 3 to 4 minutes which makes sense to me.
+
+```{r duration, fig.show="hold", out.width="50%"}
+# duration_min
+
+# histo
+spotify_songs %>%
+  ggplot(aes(x = duration_min, fill = target)) +
+  geom_histogram(bins = 30, position = "identity", alpha = 0.6) +
+  scale_fill_manual(values = target_colors)
+
+# violin
+spotify_songs %>%
+  ggplot(aes(x = target, y = duration_min, color = target)) +
+  geom_violin() +
+  geom_boxplot(width = 0.1) +
+  scale_color_manual(values = target_colors)
+```
+
+### Artists and Songs
+
+To be developed.
+
+## Modeling
+
+First we will set up our training and test data sets. We will assign 80% of the data to the training data.
+
+```{r model data prep}
+
+# data prep ----
+
+model_data <- spotify_songs %>% select(-c(artist, song_title, duration_min))
+
+set.seed(1) # set the seed to make partition reproducible
+index <- createDataPartition(model_data$target, p = 0.8, list = F)
+
+train <- model_data[index,]
+test <- model_data[-index,]
+
+paste("Training size:", nrow(train), "| Test size: ", nrow(test))
+```
+
+
+### Decision Tree
+
+Below we will apply a decision tree to the training dataset in order to classify if this user will like the song or not.
+
+```{r decision tree}
+model_dt <- rpart(target ~ ., data = train)
+prp(model_dt, type = 1, extra = 1)
+```
+
+Below we can see a confusion matrix that shows 71% accuracy.
+
+```{r decision tree pred}
+pred_dt <- predict(model_dt, test, type = "class")
+confusionMatrix(pred_dt, test$target)
+```
+
+```{r roc}
+pred_dt_roc <- prediction(predict(model_dt, test)[, 2], test$target)
+perf <- performance(pred_dt_roc, "tpr", "fpr")
+plot(perf, colorize = T)
+```
+
+## Future Work
+
+Analysis of artists and songs, try random forest and logistic regression model to see if we can improve the accuracy.
