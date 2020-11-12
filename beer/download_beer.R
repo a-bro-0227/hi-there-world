@@ -6,7 +6,7 @@ base_url <- "https://www.ttb.gov/beer/statistics"
 # Get State Level aggregate stats -----------------------------------------
 
 download.file(url = "https://www.ttb.gov/images/pdfs/statistics/aggregated/aggr-data-beer_2008-2019.xlsx",
-              destfile = here::here("2020","2020-03-31", glue::glue("ttb_brewery_state_2008-2019.xlsx")))
+              destfile = here::here("beer", glue::glue("ttb_brewery_state_2008-2019.xlsx")))
 
 
 # Download Brewery production size by year --------------------------------
@@ -14,7 +14,7 @@ download.file(url = "https://www.ttb.gov/images/pdfs/statistics/aggregated/aggr-
 # function to download by year and write out to a consistent format
 download_excel <- function(year){
   url <- glue::glue("https://www.ttb.gov/images/pdfs/statistics/production_size/{year}_brew_prod_size_ttb_gov.xlsx")
-  download.file(url = url, destfile = here::here("2020","2020-03-31", glue::glue("ttb_brewery_size_{year}.xlsx")))
+  download.file(url = url, destfile = here::here("beer", glue::glue("ttb_brewery_size_{year}.xlsx")))
 }
 
 # purrr::walk silently performs the function
@@ -50,7 +50,7 @@ month_num <- c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11",
 download_2008 <- function(url_in, month_num_in){
   download.file(
     url = url_in,
-    destfile = here::here("2020","2020-03-31", 
+    destfile = here::here("beer", 
                           glue::glue("ttb_monthly_stats_2008-{month_num_in}.pdf")
     )
   )
@@ -86,7 +86,7 @@ download_monthly_stats_pdf <- function(year){
   download_monthly_pdf <- function(url, year, month){
     download.file(
       url = url,
-      destfile = here::here("2020","2020-03-31", 
+      destfile = here::here("beer", 
                             glue::glue("ttb_monthly_stats_{year}-{month}.pdf")
       )
     )
@@ -118,7 +118,7 @@ c(2009, 2011:2014, 2016:2019) %>%
 download_2015 <- function(url_in, month_num_in){
   download.file(
     url = url_in,
-    destfile = here::here("2020","2020-03-31", 
+    destfile = here::here("beer", 
                           glue::glue("ttb_monthly_stats_2015-{month_num_in}.pdf")
     )
   )
@@ -151,7 +151,7 @@ download_monthly_stats_xls <- function(year){
   download_monthly_pdf <- function(url, year, month){
     download.file(
       url = url,
-      destfile = here::here("2020","2020-03-31", 
+      destfile = here::here("beer", 
                             glue::glue("ttb_monthly_stats_{year}-{month}.xlsx")
       )
     )
