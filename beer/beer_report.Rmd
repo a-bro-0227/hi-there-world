@@ -1,0 +1,38 @@
+---
+title: "Beer Analysis"
+author: "Alex Brown"
+date: "September 8, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+In this report, I will look into beer production. The data for this report comes form the [Tidy Tuesday Repo](https://github.com/rfordatascience/tidytuesday/tree/master/data/2020/2020-03-31) about beer!
+
+## The Data
+
+In this section, I will read in data and do some exploritoy analysis on it.
+
+```{r read-in-data, message=FALSE}
+
+library(tidyverse)
+
+brewing_materials <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/brewing_materials.csv')
+beer_taxed <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/beer_taxed.csv')
+brewer_size <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/brewer_size.csv')
+beer_states <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-03-31/beer_states.csv')
+```
+
+### Brewing Materials
+
+The `brewing_materials` dataset shows the pounds of material used in brewing beer. Here are some observastions I made and steps I took to get the data in the format I want:
+* The data has a seperate column for year and month and I will add a column that combines those.
+
+
+```{r brewing-materials}
+brewing_materials <- brewing_materials %>% mutate(year_month = as)
+```
