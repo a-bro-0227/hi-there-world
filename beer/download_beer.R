@@ -19,7 +19,7 @@ download_excel <- function(year){
 
 # purrr::walk silently performs the function
 
-2008:2019 %>% 
+2008:2020 %>% 
   walk(download_excel)
 
 
