@@ -7,7 +7,7 @@ expeditions <- readr::read_csv('https://raw.githubusercontent.com/rfordatascienc
 peaks <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-09-22/peaks.csv')
 
 # Peaks
-peaks <- read_csv("./himalayan-expeditions/raw/peaks.csv") %>%
+peaks <- peaks %>%
   transmute(
     peak_id = PEAKID,
     peak_name = PKNAME,
