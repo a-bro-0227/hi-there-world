@@ -1,2 +1,0 @@
-* To run code, open `dallas_animal_shelter.rproj`, then open `dallas_animal_shelter.rmd`, then then push `Knit` in the top rightish part of the r console.
-* To just view the results, simply open the `dallas_animal_shelter.html`

@@ -3,11 +3,9 @@ title: "Dallas Animal Shelter"
 author: "Alex Brown"
 date: "November 15, 2018"
 output:
-  html_document:
+  github_document:
     toc: true
     number_sections: TRUE
-    fig_caption: TRUE
-
 ---
 
 ```{r setup, include=FALSE}
